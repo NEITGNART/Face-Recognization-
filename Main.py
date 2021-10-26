@@ -2,6 +2,7 @@
 import os
 import numpy as np
 import cv2
+import tkinter as tk
 from PIL import Image
 
 # get the current directory
@@ -70,37 +71,58 @@ class Library:
     def registerStudent(self, student):
         self.listStudent.append(student)
 
+
+
 class Demo:
 
    def main(self):
 
-       while (True):
-           print("1. Register a new student")
-           print("2. CheckIn")
-           print("3. Exit")
+      # Write a programing using Tkiner to create a GUI application for the library management system.
+      # The application should have the following features:
+      # 1. Register a new student.
+      # 2. When the student check in the library: verify the student’s information: if student registered, they were come in the library else they were denied.
 
-           choice = int(input("Enter your choice [1-2-3]: "))
+      # create a GUI application using Tkiner
+      root = tk.Tk()
+      root.title("Library Management System")
+      root.geometry("500x500")
+      root.configure(background='#ffffff')
+      root.resizable(0, 0)
+      root.iconphoto(False, tk.PhotoImage(file='Image/book.png'))
+      root.wm_attributes("-topmost", 1)
+      root.focus_force()
+      root.mainloop()
 
-           if choice == 1:
-               #input information of student through console
-               fullName = input("Enter full name: ")
-               dateOfBirth = input("Enter date of birth: ")
-               idClass = input("Enter id class: ")
-               idStudent = input("Enter id student: ")
 
-               # take a picture of the student using pillow
 
-               picture = Image.open(currentDirectory + "/" + "student.jpg")
-               picture.show()
-
-           if choice == 2:
-               pass
-           if choice == 3:
-                break
+# while (True):
+       #     print("1. Register a new student")
+       #     print("2. CheckIn")
+       #     print("3. Exit")
+       #
+       #     choice = int(input("Enter your choice [1-2-3]: "))
+       #
+       #     if choice == 1:
+       #         #input information of student through console
+       #         fullName = input("Enter full name: ")
+       #         dateOfBirth = input("Enter date of birth: ")
+       #         idClass = input("Enter id class: ")
+       #         idStudent = input("Enter id student: ")
+       #
+       #         # take a picture of the student using pillow
+       #
+       #     if choice == 2:
+       #         pass
+       #     if choice == 3:
+       #          break
 
 
 
 Demo.main(self=Demo())
+
+
+
+
 
 
 
