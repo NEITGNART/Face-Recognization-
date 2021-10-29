@@ -289,6 +289,15 @@ class MainWindow(tk.Frame):
                 idClass = window.idClassEntry.get()
                 dateOfBirth = window.dateOfBirthEntry.get()
 
+                # save information to the Infor.txt file
+
+                with open("Info.txt", 'a') as file:
+                    file.write(name + '\t')
+                    file.write(idStudent + '\t')
+                    file.write(idClass + '\t')
+                    file.write(dateOfBirth + '\t')
+                    file.write('\n')
+
                 print (flag[0])
 
                 if flag[0] == 0:
