@@ -1,5 +1,6 @@
 # Build an application with below functions: Register a new student. When the student check in the library: verify the student’s information: if student registered, they were come in the library else they were denied.
 import os
+import random
 import numpy as np
 import cv2
 import tkinter as tk
@@ -65,19 +66,16 @@ def labelImage(directory):
     linkFile = readDirectory(directory)
 
     for (i, imagePath) in enumerate(linkFile):
-        image = cv2.imread(imagePath)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = np.array(Image.open(imagePath))
+        if (len(image.shape) == 3):
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         images.append(image)
         labels.append(i)
 
     return images, labels
 
 
-linkTest = current_dir + '/' + "Test1.png"
-
 def PCA(linkTest):
-
-
     images, labels = labelImage(current_dir)
     image_data = []
 
@@ -86,11 +84,12 @@ def PCA(linkTest):
         image_data.append(data)
 
     image_data = np.array(image_data).reshape((-1, len(image_data[0])))
-    print (image_data.shape)
+
+    print(image_data.shape)
 
     # mean image
     mean_image = np.mean(image_data, axis=0)
-    print (mean_image.shape)
+    print(mean_image.shape)
 
     # sub tract mean image from image data
     image_data = image_data - mean_image
@@ -100,22 +99,25 @@ def PCA(linkTest):
     U, S, V = np.linalg.svd(image_data)
 
     # Find the eigenfaces and set the threshold
-    if (len (S) >= 2):
+    if (len(S) >= 2):
         eigen_faces = []
         for i in range(len(S)):
-            if (S[i] > 0.1):
+            if (S[i] > 0.0001):
                 eigen_faces.append(V[i])
 
     # Convert eigen_faces to numpy array
     eigen_faces = np.array(eigen_faces)
-    print (eigen_faces.shape)
-    # eigen_faces = eigen_faces.reshape((-1, len(eigen_faces[0])))
+    print(eigen_faces.shape)
+
+    eigen_faces = eigen_faces.reshape((-1, len(eigen_faces[0])))
 
     def findNearestImage(eigen_faces):
 
         # Read the image
         image = np.array(Image.open(linkTest))
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = image
+        if (len(image.shape) == 3):
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gray = cv2.resize(gray, (100, 100))
         # Reshape the image
         gray = gray.reshape((1, 100 * 100))
@@ -128,33 +130,16 @@ def PCA(linkTest):
         print("Distance from dataset: " + str(distance[min_index]))
         return distance[min_index]
 
-
     return findNearestImage(eigen_faces)
 
-
-
-    # Test the nearest image
-    # test_image = cv2.imread(current_dir + "/" + "ImageStudent/1.jpg")
-    # test_image = cv2.cvtColor(test_image, cv2.COLOR_BGR2GRAY)
-
-
-
-
-
-
-
-
-
-
-
 class MainWindow(tk.Frame):
-
 
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
         self.root = master
         self.pack()
         self.createWidgets()
+
 
     def createWidgets(self):
         self.quitButton = tk.Button(self, text="Quit", command=self.quit)
@@ -196,14 +181,13 @@ class MainWindow(tk.Frame):
         root.message = tk.Label(root, text="Welcome to Library", bg='#50c4ee', fg='#ffffff', font=('Arial', 12, 'bold'))
         root.message.place(x=100, y=200, width=300, height=50)
 
-
         # create another page to register a new student when the register button is clicked
 
         def createRegisterWindow(nameTitle):
 
             window = tk.Toplevel(root)
             window.title(nameTitle)
-            window.geometry("600x600")
+            window.geometry("640x640")
 
             # set window to the top of all windows
             window.wm_attributes("-topmost", 1)
@@ -225,7 +209,6 @@ class MainWindow(tk.Frame):
             window.nameEntry.focus_force()
 
             # get value name of the student
-
 
             # self.idStudent = idStudent
             # self.idClass = idClass
@@ -265,17 +248,18 @@ class MainWindow(tk.Frame):
             window.takePicture.place(x=100, y=500, width=100, height=50)
 
 
-
-            #When click a button take a picture of the student then open a file dialog to choose a picture
-            #and save it to the directory of the project
+            # When click a button take a picture of the student then open a file dialog to choose a picture
+            # and save it to the directory of the project
 
             def takePicture(window):
-                nameFile = filedialog.askopenfilename(initialdir = ImageDirectory, title = "Select file", filetypes = (("png files","*.png"),("all files","*.*")))
+                nameFile = filedialog.askopenfilename(initialdir=ImageDirectory, title="Select file",
+                                                      filetypes=(("png files", "*.png"), ("all files", "*.*")))
+                
                 window.imageStudent = nameFile
 
             window.takePicture.bind("<Button-1>", lambda event: takePicture(window))
+            
 
-            # save information from the window to the file of the student
 
             window.save = tk.Button(window, text="Save", bg='#50c4ee', fg='#5ae3ce', font=('Arial', 12, 'bold'))
             window.save.place(x=300, y=500, width=100, height=50)
@@ -286,31 +270,85 @@ class MainWindow(tk.Frame):
             window.quit.place(x=500, y=500, width=100, height=50)
             window.quit.bind("<Button-1>", lambda event: window.destroy())
 
+            # create a button to take picture from opencv2
+
+            window.takePictureOpenCV = tk.Button(window, text="Camera", bg='#50c4ee', fg='#5ae3ce', font =('Arial', 12, 'bold'))
+            window.takePictureOpenCV.place(x=100, y=600, width=100, height=50)
+
+
+
 
             # after click a button save information and return information to the main window
 
-            def save(window):
+            flag = [0]
+
+            def save(window, flag):
+
                 name = window.nameEntry.get()
                 idStudent = window.idStudentEntry.get()
                 idClass = window.idClassEntry.get()
                 dateOfBirth = window.dateOfBirthEntry.get()
 
-                fileName = window.imageStudent
+                print (flag[0])
 
-                # take a picture from fileName
+                if flag[0] == 0:
+                    fileName = window.imageStudent
+                    # take a picture from fileName
 
-                image = np.array(Image.open(fileName))
-                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-                gray = cv2.resize(gray, (100, 100))
+                    image = np.array(Image.open(fileName))
+                    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    gray = cv2.resize(gray, (100, 100))
 
-                # save picture to the directory of the project
-                cv2.imwrite(ImageStudent + "/" + idStudent + ".png", gray)
+                    # save picture to the directory of the project
+                    cv2.imwrite(ImageStudent + "/" + idStudent + ".png", gray)
+
                 # student = Student(name, idStudent, idClass, dateOfBirth, Picture)
                 # studentList.addStudent(student)
                 window.destroy()
 
 
-            window.save.bind("<Button-1>", lambda event: save(window))
+            window.save.bind("<Button-1>", lambda event: save(window, flag))
+
+            def registerCamera(window, flag):
+                idStudent = window.idStudentEntry.get()
+                cap = cv2.VideoCapture(0)
+
+                while True:
+                    ret, frame = cap.read()
+
+                    # Recognize face in the frame
+                    face_cascade = cv2.CascadeClassifier(current_dir + '/haarcascade_frontalface_default.xml')
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+                    x_, y_ = 0, 0
+                    for (x, y, w, h) in faces:
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                        roi_color = frame[y:y + h, x:x + w]
+                        x_, y_ = x, y
+
+                    # print text in rectangle with content "Press s to take a picture""
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    cv2.putText(frame, "Press s to take a picture", (x_+30, y_-30), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
+
+                    cv2.imshow('frame', frame)
+
+                    # Print text on recognized face with content "Press S to take a picture"
+
+                    if cv2.waitKey(2) & 0xFF == ord('s'):
+                        roi_color = cv2.resize(roi_color, (100, 100))
+                        # gray color
+                        gray = cv2.cvtColor(roi_color, cv2.COLOR_BGR2GRAY)
+
+                        if idStudent == "":
+                            idStudent = str(random.randint(1, 1000))
+                        cv2.imwrite(current_dir + "/ImageStudent/" +  idStudent + ".png", gray)
+                        break
+                flag[0] = 1
+                cap.release()
+                cv2.destroyAllWindows()
+
+            window.takePictureOpenCV.bind("<Button-1>", lambda event: registerCamera(window, flag))
+
 
         # create a checkIn window
         def createCheckInWindow(root):
@@ -333,19 +371,13 @@ class MainWindow(tk.Frame):
             window.wm_attributes("-topmost", 1)
             window.focus_force()
 
-
             # Create a button with content "Click to open camera"
 
-            window.openCamera = tk.Button(window, text="Click to open camera", bg='#50c4ee', fg='#5ae3ce', font=('Arial', 12, 'bold'))
+            window.openCamera = tk.Button(window, text="Click to open camera", bg='#50c4ee', fg='#5ae3ce',
+                                          font=('Arial', 12, 'bold'))
             window.openCamera.place(x=100, y=100, width=300, height=50)
 
             # Create a button to quit the window
-
-            # Create a label for notice with content "Please click a button to open camera and Press S to take a picture"
-
-            window.notice = tk.Label(window, text="Please click a button to open camera and Press S to take a picture", bg='#fdfc2d', fg='#5ae3ce', font=('Arial', 15, 'bold'))
-            window.notice.place(x = 0, y=200, width=500, height=50)
-
 
 
             # Create a button to quit the window
@@ -353,44 +385,72 @@ class MainWindow(tk.Frame):
             window.quit.place(x=100, y=400, width=300, height=50)
             window.quit.bind("<Button-1>", lambda event: window.destroy())
 
-
-
             # open camera using opencv
             def openCamera(window):
                 cap = cv2.VideoCapture(0)
 
-
                 while True:
-                    # Move frame opencv to the right of window
                     ret, frame = cap.read()
 
-                    ret, frame = cap.read()
+                    # Recognize face in the frame
+                    face_cascade = cv2.CascadeClassifier(current_dir + '/haarcascade_frontalface_default.xml')
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+                    x_, y_ = 0, 0
+                    for (x, y, w, h) in faces:
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                        roi_color = frame[y:y + h, x:x + w]
+                        x_, y_ = x, y
+
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    cv2.putText(frame, "Press s to take a picture", (x_+30, y_-30), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
+
                     cv2.imshow('frame', frame)
-                    # Take a picture when click a button
-                    # save the picture to the directory of the project
-                    # if the user press 'q' then break the frame loop
+
                     if cv2.waitKey(2) & 0xFF == ord('s'):
-                        cv2.imwrite(current_dir + "/" + "test.png", frame)
+                        cv2.imwrite(current_dir + "/" + "Test.png", roi_color)
                         break
                 cap.release()
                 cv2.destroyAllWindows()
 
-                distance  = PCA(current_dir + "/" + "test.png")
+                distance = PCA(current_dir + "/" + "Test.png")
                 if distance < 6300:
 
                     # Create a label for notice with content "You can go to the library"
-                    window.notice = tk.Label(window, text="Check-in successfully", bg='#fdfc2d', fg='#5ae3ce', font=('Arial', 15, 'bold'))
-                    window.notice.place(x = 0, y=200, width=500, height=50)
+                    window.notice = tk.Label(window, text="Check-in successfully", bg='#fdfc2d', fg='#5ae3ce',
+                                             font=('Arial', 15, 'bold'))
+                    window.notice.place(x=0, y=200, width=500, height=50)
+
                 else:
                     # Create a label for notice with content "You can not go to the library"
 
-                    window.notice = tk.Label(window, text="Check-in failed", bg='#fdfc2d', fg='#5ae3ce', font=('Arial', 15, 'bold'))
-                    window.notice.place(x = 0, y=200, width=500, height=50)
-
-
-
+                    window.notice = tk.Label(window, text="Check-in failed", bg='#fdfc2d', fg='#5ae3ce',
+                                             font=('Arial', 15, 'bold'))
+                    window.notice.place(x=0, y=200, width=500, height=50)
 
             window.openCamera.bind("<Button-1>", lambda event: openCamera(window))
+            # Create a button for checking using filealog
+            window.check = tk.Button(window, text="Check Using File", bg='#50c4ee', fg='#5ae3ce', font=('Arial', 12, 'bold'))
+            window.check.place(x=100, y=300, width=300, height=50)
+
+            def takePicture_(window):
+                nameFile = filedialog.askopenfilename(initialdir=current_dir + "/Test", title="Select file")
+                if nameFile != "":
+                    distance = PCA(nameFile)
+                    if distance < 6300:
+                        window.notice = tk.Label(window, text="Check-in successfully", bg='#fdfc2d', fg='#5ae3ce',
+                                                 font=('Arial', 15, 'bold'))
+                        window.notice.place(x=0, y=200, width=500, height=50)
+                    else:
+                        window.notice = tk.Label(window, text="Check-in failed", bg='#fdfc2d', fg='#5ae3ce',
+                                                 font=('Arial', 15, 'bold'))
+                        window.notice.place(x=0, y=200, width=500, height=50)
+
+
+            window.check.bind("<Button-1>", lambda event: takePicture_(window))
+
+
+
 
         root.register.bind("<Button-1>", lambda event: createRegisterWindow(root))
         root.checkIn.bind("<Button-1>", lambda event: createCheckInWindow(root))
@@ -402,8 +462,8 @@ class MainWindow(tk.Frame):
 class Demo:
     Library = Library()
     studentList = StudentList()
+
     def main(self):
         MainWindow.UI(self)
-
 
 Demo.main(self=Demo())
